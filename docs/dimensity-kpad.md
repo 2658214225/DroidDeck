@@ -1,6 +1,6 @@
 # DroidDeck 天玑 / KPad 适配
 
-日期：2026-10-18。当前阶段：**实验分支准备与适配评估；尚未完成 DroidDeck 天玑实机验收。**
+日期：2026-10-18。当前阶段：**原版诊断与 PanVK 底层枚举已完成，正在源码构建和真机修复；进入 Steam 尚未验收。**
 
 ## 正在实施：进入 Steam
 
@@ -9,6 +9,19 @@
 本分支开始接入和验证非 Adreno 路线。CI 已配置在 `dimensity/kpad-panvk` 提交时构建，使用 `-PdimensityBuild=true` 生成 `com.droiddeck.launcher.dimensity`，显示为 DroidDeck Dimensity，避免与官方签名的原版包发生覆盖冲突。构建仍执行原有运行时输入、APK内容、native依赖、单元测试和签名检查；构建成功与实机验收分别记录。签名发布与公告仍只在原上游的 main 条件中运行。
 
 验收目标为：Android 显示与 Linux guest 均能使用可用驱动、实际进入 Steam 登录或大屏界面并保持出画、可操作，退出后再次启动仍正常。目前这些修复验收尚未完成。
+
+### 当前证据与构建
+
+| 检查 | 结果与边界 |
+|---|---|
+| 官方 0.4.0 对照 | r9 与 ARM64 Proton 安装成功；两次 Steam 启动在 Turnip 物理设备发现阶段失败，无首帧 |
+| Linux PanVK RC3-lowmem 枚举 | 在目标 K Pad 上以独立临时目录和 glibc loader 执行 `vulkaninfo --summary`，识别 `Mali-G925-Immortalis MC12`、GPU ID `0xd8300015`；kbase CSF uAPI `1.30`，队列与 tiler heap 初始化成功 |
+| 枚举结果的限制 | 探针为 KSU root 上下文，未使用应用 UID、proot 或 Wayland surface；不代表应用权限、窗口呈现或 Steam 成功 |
+| 隔离测试包 | [2e16751](https://github.com/2658214225/DroidDeck/commit/2e1675162caf7fd7bfb1e93ce4aad97caa5f270b) 增加 `.dimensity` 包名与分支 CI，保留官方安装和数据 |
+| fork 构建来源修复 | [648961c](https://github.com/2658214225/DroidDeck/commit/648961c6d61c5042e1a68ff3e37ae6f86a928714) 将 Debian 镜像下载指向持有该资产的官方上游，保持 SHA-256 校验；校验失败直接终止 |
+| APK 构建与实机验收 | [当前构建](https://github.com/2658214225/DroidDeck/actions/runs/39097278286) 进行中；尚未产生本轮验收结果 |
+
+本轮 PanVK 配对包来自 [panvk-mali-kbase release](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases/tag/panvk-mali-kbase)，文件 `PanVK-Mali-kbase-Pair.zip`，12,458,453 字节，SHA-256 `a87325c034e1d18c0de7155813aed6cafa69d0e0cb2f0a01b1dca7019f024596`。探针使用其中的 Linux/glibc 库，SHA-256 `661c9f90059a81dca34d033606b3372e286c291fb8378729d0b14af567848bda`；驱动报告 `PanVK-kbase RC3-lowmem`、Mesa commit `5a07217f03`，配对包声明源码 commit `0183fc489f17156a6b266360b0c296cfd9109da1`。未把 Android/Bionic 半包当成 guest 驱动。
 
 本分支目标是 Redmi K Pad（Dimensity 9400+ / Mali-G925）。其他天玑型号、Mali 代际与内核版本需分别验证。
 
@@ -20,7 +33,7 @@
 - 基线：上游 `test/non-adreno-all`，commit [c9ebb247fe97bb0812beef07ee05c080110a56d1](https://github.com/Droid-Deck/DroidDeck/commit/c9ebb247fe97bb0812beef07ee05c080110a56d1)。
 - 创建时上游 `main`：`45513c90d620249157542291432ecb479bfbe51f`。
 
-选择非 Adreno 实验分支，是为了继承已有的 GPU 检测、开放驱动选择与显示接入工作。此基线中的 `DeviceSupport.kt` 已有 Mali 检测和开放驱动路径；单独放开设备检查不能证明图形或游戏可用。本次分支准备只新增适配说明与 README 入口，没有移植 KPad 运行时代码、加入驱动二进制或生成 APK。
+选择非 Adreno 实验分支，是为了继承已有的 GPU 检测、开放驱动选择与显示接入工作。此基线中的 `DeviceSupport.kt` 已有 Mali 检测和开放驱动路径；单独放开设备检查不能证明图形或游戏可用。分支创建阶段仅新增适配说明与 README 入口，后续实施和证据记录见上方进度。本分支尚未移植 KPad 运行时代码或提交驱动二进制。
 
 基线的 `DriverPairs.kt` 已列出 `nad:panvk-mali-kbase`（名称覆盖到 Mali-G925），并对其显示驱动设置 Android 15 / API 35 下限。这说明分支已有相关驱动选择入口，不等于该二进制在 KPad 内核或游戏场景中已经验证。
 
@@ -58,7 +71,7 @@ CPU 都是 ARM64、GPU 都属于 Mali，并不意味着共享库 ABI 相同。�
 3. **验证 Steam 大屏。** 必须观察客户端持续呈现并响应输入；Vulkan 枚举成功或一个窗口出画只属于更早的验证层。
 4. **验证 Windows 游戏。** 进入实际游戏世界，分别取证渲染、声音、角色移动/视角和重复启动稳定性，再对外声明具体设备与游戏的兼容范围。BCn 等纹理格式处理应单独验证，不默认启用曾出现异常的转码路线。
 
-目前 DroidDeck 在目标 Redmi K Pad 上的上述验收均未进行。本次没有操作平板、安装 APK、改变系统设置或操作 Steam 存档。
+目前已完成目标 Redmi K Pad 的原版安装诊断及独立 PanVK 枚举探针。临时下载代理在原版诊断结束后已恢复；没有操作 Steam 存档。应用上下文中的 PanVK、跨层呈现、Steam 操作与重复启动仍待验收。
 
 ## 许可与资产来源
 
