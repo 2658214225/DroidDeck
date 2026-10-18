@@ -7,6 +7,8 @@
 
 DroidDeck brings the SteamOS experience to Android: Valve's Steam client in Big Picture on your Android handheld, with Windows games through Valve's ARM64 Proton.
 
+> **天玑实验分支 / Experimental Dimensity branch:** `dimensity/kpad-panvk` targets Redmi K Pad (Dimensity 9400+ / Mali-G925). Device support and gameplay are not yet validated. See [适配状态、已有方案与 KPad 迁移说明](docs/dimensity-kpad.md).
+
 <p align="center"><a href="https://discord.gg/JRGAvawjsm"><img src="https://img.shields.io/badge/Discord-Join%20the%20community-5865F2?logo=discord&logoColor=white" alt="Join the DroidDeck Discord"></a></p>
 
 <p align="center"><img src="docs/releases/media/0.2.0/launch-into-steam.gif" width="80%" alt="Tapping DroidDeck on the Android home screen and landing in Steam Big Picture"></p>
