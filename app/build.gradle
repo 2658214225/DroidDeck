@@ -53,6 +53,7 @@ def sourceCommit = providers.environmentVariable('DROIDDECK_SOURCE_COMMIT').getO
     ?: providers.environmentVariable('GITHUB_SHA').getOrNull() ?: gitValue(['rev-parse', 'HEAD']) ?: ''
 def prNumber = (providers.environmentVariable('DROIDDECK_PR_NUMBER').getOrNull() ?: '0').with { it.isInteger() ? it : '0' }
 def ciBuild = providers.environmentVariable('GITHUB_ACTIONS').getOrNull() == 'true'
+def dimensityBuild = (project.findProperty('dimensityBuild') ?: 'false').toString().toBoolean()
 def releaseSigner = rootProject.file('keystore/release-signer.sha256').text.trim()
 def commitTime = (gitValue(['show', '-s', '--format=%ct', 'HEAD']) ?: '0').with { it.isLong() ? it : '0' }
 def desktopKde = rootProject.file('tools/desktop-kde/release.env').readLines()
@@ -128,10 +129,20 @@ android {
         debug {
             minifyEnabled false
             signingConfig signingConfigs.testkey
+            if (dimensityBuild) {
+                applicationIdSuffix '.dimensity'
+                versionNameSuffix '-dimensity'
+                resValue 'string', 'app_name', 'DroidDeck Dimensity'
+            }
         }
         release {
             minifyEnabled false
             signingConfig signingConfigs.testkey
+            if (dimensityBuild) {
+                applicationIdSuffix '.dimensity'
+                versionNameSuffix '-dimensity'
+                resValue 'string', 'app_name', 'DroidDeck Dimensity'
+            }
             // Mali bridge development fork: debuggable so `adb shell run-as` reaches the session
             // logs and VkBridgeNative's development override (-Pdroiddeck.notDebuggable to drop).
             debuggable !project.hasProperty('droiddeck.notDebuggable')

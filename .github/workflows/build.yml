@@ -3,7 +3,7 @@ run-name: ${{ github.event_name == 'pull_request' && format('building pr {0} on 
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, dimensity/kpad-panvk ]
     paths-ignore:
       - '**/*.md'
       - 'LICENSE'
@@ -177,6 +177,9 @@ jobs:
           echo "label=$label" >> "$GITHUB_OUTPUT"
           echo "DROIDDECK_SOURCE_COMMIT=${PR_HEAD_SHA:-$BUILD_SHA}" >> "$GITHUB_ENV"
           echo "DROIDDECK_PR_NUMBER=${PR_NUMBER:-0}" >> "$GITHUB_ENV"
+          if [[ "$BUILD_REF" == "dimensity/kpad-panvk" ]]; then
+            echo "ORG_GRADLE_PROJECT_dimensityBuild=true" >> "$GITHUB_ENV"
+          fi
           echo "Build: \`$label\`" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Cache the preloads
@@ -548,6 +551,19 @@ jobs:
           grep -qi "CN=Android, OU=Android, O=Android" /tmp/sig.txt \
             || { echo "::error::apk is not signed with the AOSP testkey"; exit 1; }
 
+      - name: Verify package identity and write checksums
+        run: |
+          set -euo pipefail
+          APK=$(find app/build/outputs/apk -name '*.apk' | head -1)
+          TOOLS=$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -type d | sort -V | tail -1)
+          expected=com.droiddeck.launcher
+          if [[ "${ORG_GRADLE_PROJECT_dimensityBuild:-false}" == "true" ]]; then
+            expected=com.droiddeck.launcher.dimensity
+          fi
+          actual=$("$TOOLS/aapt" dump badging "$APK" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")
+          [[ "$actual" == "$expected" ]] || { echo "::error::APK package $actual, expected $expected"; exit 1; }
+          (cd "$(dirname "$APK")" && sha256sum "$(basename "$APK")" > SHA256SUMS.txt)
+
       - name: Report on the pull request
         if: always() && github.event_name == 'pull_request'
         continue-on-error: true
@@ -617,7 +633,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: droiddeck-apk
-          path: app/build/outputs/apk/release/*.apk
+          path: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/apk/release/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 30
           compression-level: 0

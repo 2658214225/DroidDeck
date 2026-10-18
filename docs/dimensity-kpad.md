@@ -2,6 +2,14 @@
 
 日期：2026-10-18。当前阶段：**实验分支准备与适配评估；尚未完成 DroidDeck 天玑实机验收。**
 
+## 正在实施：进入 Steam
+
+官方 0.4.0 已在 Redmi K Pad 上完成原版对照：运行时 r9 与 ARM64 Proton 准备成功，但 Android 显示侧选择 `turnip-sdk36` 后没有物理设备，Linux guest 的 `freedreno_icd.json` 也在 gamescope 中报找不到物理设备；两次均无首帧并返回前端。设备当前为 Android 17 / API 37、Mali-G925。
+
+本分支开始接入和验证非 Adreno 路线。CI 已配置在 `dimensity/kpad-panvk` 提交时构建，使用 `-PdimensityBuild=true` 生成 `com.droiddeck.launcher.dimensity`，显示为 DroidDeck Dimensity，避免与官方签名的原版包发生覆盖冲突。构建仍执行原有运行时输入、APK内容、native依赖、单元测试和签名检查；构建成功与实机验收分别记录。签名发布与公告仍只在原上游的 main 条件中运行。
+
+验收目标为：Android 显示与 Linux guest 均能使用可用驱动、实际进入 Steam 登录或大屏界面并保持出画、可操作，退出后再次启动仍正常。目前这些修复验收尚未完成。
+
 本分支目标是 Redmi K Pad（Dimensity 9400+ / Mali-G925）。其他天玑型号、Mali 代际与内核版本需分别验证。
 
 ## 分支来源
